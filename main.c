@@ -34,7 +34,7 @@ typedef struct {
 point **field;
 
 void gen_field() {
-    //srand(time(NULL));
+    srand((unsigned int) time(NULL));
 
     field = calloc(size_x, sizeof(point *));
 
@@ -135,8 +135,11 @@ void render_field(uint8_t px, uint8_t py) {
                 str[0] = (char) (mines == 0 ? ' ' : (char) (mines + '0'));
                 str[1] = ' ';
                 mvprintw(px + i, py + j * 2, str);
+            } else if (field[i][j].flag) {
+                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_FLAG));
+                mvprintw(px + i, py + j * 2, "FF");
             } else {
-                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_FLAG : CL_FIELD_NONE)));
+                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_NONE));
                 mvprintw(px + i, py + j * 2, "  ");
             }
         }
