@@ -13,8 +13,6 @@
 #define ST_LOSE 1
 #define ST_WIN 2
 
-#define MINE_CHECK(x, y) x >= 0 && x <= size_x-1 && y >= 0 && y <= size_y-1
-
 // Window
 WINDOW *scr;
 uint8_t scr_x, scr_y;
@@ -87,17 +85,19 @@ void mine_open_all() {
     }
 }
 
+#define MINE_CHECK(x, y) x >= 0 && x <= size_x-1 && y >= 0 && y <= size_y-1
+
 // Open mine
 void mine_open(uint8_t x, uint8_t y) {
     field[x][y].open = true;
 
+    // Check
     uint8_t c = 0;
     for (uint8_t i = 0; i < size_x; i++) {
         for (uint8_t j = 0; j < size_y; j++) {
             if ((field[i][j].mine && !field[i][j].open) || (!field[i][j].mine && field[i][j].open)) c++;
         }
     }
-
 
     if (field[x][y].mine) {
         mine_open_all();
@@ -187,6 +187,39 @@ uint8_t key_event(int ch) {
     return 0;
 }
 
+// Menu interface
+void open_menu() {
+
+}
+
+// Play game
+void play_game() {
+    gen_field();
+
+    do {
+        render_field(0, 0);
+        refresh();
+
+        if (st_game != ST_GAME) break;
+    } while (!key_event(getch()));
+
+
+    switch (st_game) {
+        case ST_LOSE:
+            mvprintw(10, 0, "You lose.");
+            break;
+
+        case ST_WIN:
+            mvprintw(10, 0, "You win!");
+            break;
+
+        default:
+            break;
+    }
+
+    getch();
+}
+
 int main(uint8_t argc, char *argv[]) {
     scr = initscr();
     noecho();
@@ -208,33 +241,12 @@ int main(uint8_t argc, char *argv[]) {
     init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_WHITE);
     init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLUE);
 
-    gen_field();
-
+    // Open menu
+    open_menu();
 
     // Game doing
-    do {
-        render_field(0, 0);
-        refresh();
-
-        if (st_game != ST_GAME) break;
-    } while (!key_event(getch()));
-
-
-    switch (st_game) {
-        case ST_LOSE:
-            mvprintw(10, 0, "You lose.");
-            break;
-
-        case ST_WIN:
-            mvprintw(10, 0, "You WIN!");
-            break;
-
-        default:
-            break;
-    }
+    play_game();
 
     curs_set(TRUE);
-    getch();
-
     endwin();
 }
