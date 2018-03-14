@@ -13,52 +13,42 @@
 #define ST_LOSE 1
 #define ST_WIN 2
 
-// Window
-uint8_t scr_x, scr_y;
-
-// Mines settings
-uint8_t size_x = 8;
-uint8_t size_y = 8;
-uint8_t mines = 10;
-
-// Game status
-uint8_t cur_x = 0;
-uint8_t cur_y = 0;
-uint8_t st_game = 0;
-
 typedef struct {
     bool mine, flag, open;
 } point;
 
-point **field;
+unsigned int scr_x, scr_y;
+unsigned int size_x, size_y, mines;
+unsigned int cur_x, cur_y, st_game;
+point **field = NULL;
 
+// Generate field
 void gen_field() {
     srand((unsigned int) time(0));
-
     field = calloc(size_x, sizeof(point *));
 
-    for (uint8_t i = 0; i < size_x; i++) {
+    for (int i = 0; i < size_x; i++) {
         field[i] = calloc(size_y, sizeof(point));
 
-        for (uint8_t j = 0; j < size_y; j++) {
+        for (int j = 0; j < size_y; j++) {
             field[i][j].mine = false;
             field[i][j].flag = false;
             field[i][j].open = false;
         }
     }
 
-    for (uint8_t i = 0; i < mines; i++) {
-        uint8_t x = (uint8_t) (rand() % size_x);
-        uint8_t y = (uint8_t) (rand() % size_y);
+    for (int i = 0; i < mines; i++) {
+        int x = rand() % size_x;
+        int y = rand() % size_y;
 
-        if (field[x][y].mine) i--;
-        field[x][y].mine = true;
+        if (x == cur_x || y == cur_y || field[x][y].mine) i--;
+        else field[x][y].mine = true;
     }
 }
 
 // Count of around mines
-uint8_t mines_around(uint8_t x, uint8_t y) {
-    uint8_t c = 0;
+int mines_around(int x, int y) {
+    int c = 0;
 
     // LEFT
     if (x > 0 && y > 0 && field[x - 1][y - 1].mine) c++;
@@ -79,24 +69,24 @@ uint8_t mines_around(uint8_t x, uint8_t y) {
 
 // Open all mines
 void mine_open_all() {
-    for (uint8_t i = 0; i < size_x; i++) {
-        for (uint8_t j = 0; j < size_y; j++) {
+    for (int i = 0; i < size_x; i++) {
+        for (int j = 0; j < size_y; j++) {
             if (field[i][j].mine)
                 field[i][j].open = true;
         }
     }
 }
 
-#define MINE_CHECK(x, y) x >= 0 && x <= size_x-1 && y >= 0 && y <= size_y-1
+#define MINE_CHECK(x, y) ((x) >= 0 && (x) <= size_x-1 && (y) >= 0 && (y) <= size_y-1)
 
 // Open mine
-void mine_open(uint8_t x, uint8_t y) {
+void mine_open(int x, int y) {
     field[x][y].open = true;
 
     // Check
-    uint8_t c = 0;
-    for (uint8_t i = 0; i < size_x; i++) {
-        for (uint8_t j = 0; j < size_y; j++) {
+    int c = 0;
+    for (int i = 0; i < size_x; i++) {
+        for (int j = 0; j < size_y; j++) {
             if ((field[i][j].mine && !field[i][j].open) || (!field[i][j].mine && field[i][j].open)) c++;
         }
     }
@@ -122,25 +112,30 @@ void mine_open(uint8_t x, uint8_t y) {
 }
 
 // Render mines field
-void render_field(uint8_t px, uint8_t py) {
-    for (uint8_t i = 0; i < size_x; i++) {
-        for (uint8_t j = 0; j < size_y; j++) {
+void render_field(int px, int py) {
+    for (int i = 0; i < size_x; i++) {
+        for (int j = 0; j < size_y; j++) {
             bool cur = cur_x == i && cur_y == j;
-            if (field[i][j].open && field[i][j].mine) {
-                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_MINE));
+
+            if (field == NULL) { // Null field
+                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_NONE));
+                mvprintw(px + i, py + j * 2, "  ");
+                continue;
+            } else if (field[i][j].open && field[i][j].mine) { // Open mine
+                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_FLAG : CL_FIELD_MINE)));
                 mvprintw(px + i, py + j * 2, "* ");
-            } else if (field[i][j].open) {
+            } else if (field[i][j].open) { // Open square
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
 
-                uint8_t mines = mines_around(i, j);
+                int mines = mines_around(i, j);
                 char str[3] = "\0";
                 str[0] = (char) (mines == 0 ? ' ' : (char) (mines + '0'));
                 str[1] = ' ';
                 mvprintw(px + i, py + j * 2, str);
-            } else if (field[i][j].flag) {
+            } else if (field[i][j].flag) { // Flag
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_FLAG));
                 mvprintw(px + i, py + j * 2, "FF");
-            } else {
+            } else { // Closed square
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_NONE));
                 mvprintw(px + i, py + j * 2, "  ");
             }
@@ -156,8 +151,7 @@ void render_field(uint8_t px, uint8_t py) {
 void start_game() {
     erase();
     bkgd(COLOR_PAIR(CL_DEFAULT));
-    st_game = 0;
-    gen_field();
+    st_game = 0, cur_x = 0, cur_y = 0, field = NULL;
 
     // Game doing
     do {
@@ -184,11 +178,13 @@ void start_game() {
                 break;
 
             case 32: // SPACE
+                if (field == NULL) gen_field();
                 if (!field[cur_x][cur_y].flag)
                     mine_open(cur_x, cur_y);
                 break;
 
             case 'f': // f
+                if (field == NULL) break;
                 field[cur_x][cur_y].flag = !field[cur_x][cur_y].flag;
                 break;
 
@@ -221,7 +217,7 @@ void start_game() {
 
 // Menu interface
 void open_menu() {
-    uint8_t menu_pos = 0, menu_size = 4;
+    int menu_pos = 0, menu_size = 4;
 
     do {
         // Render menu
@@ -256,7 +252,7 @@ void open_menu() {
     } while (1);
 }
 
-int main(uint8_t argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     initscr();
     noecho();
     curs_set(FALSE);
