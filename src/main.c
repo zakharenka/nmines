@@ -14,13 +14,14 @@
 #define ST_WIN 2
 
 // Window
-WINDOW *scr;
 uint8_t scr_x, scr_y;
 
 // Mines settings
-const uint8_t size_x = 8;
-const uint8_t size_y = 8;
-const uint8_t mines = 10;
+uint8_t size_x = 8;
+uint8_t size_y = 8;
+uint8_t mines = 10;
+
+// Game status
 uint8_t cur_x = 0;
 uint8_t cur_y = 0;
 uint8_t st_game = 0;
@@ -32,7 +33,7 @@ typedef struct {
 point **field;
 
 void gen_field() {
-    srand((unsigned int) time(NULL));
+    srand((unsigned int) time(0));
 
     field = calloc(size_x, sizeof(point *));
 
@@ -76,11 +77,12 @@ uint8_t mines_around(uint8_t x, uint8_t y) {
     return c;
 }
 
-// Open all field
+// Open all mines
 void mine_open_all() {
     for (uint8_t i = 0; i < size_x; i++) {
         for (uint8_t j = 0; j < size_y; j++) {
-            field[i][j].open = true;
+            if (field[i][j].mine)
+                field[i][j].open = true;
         }
     }
 }
@@ -150,67 +152,62 @@ void render_field(uint8_t px, uint8_t py) {
     attron(COLOR_PAIR(CL_DEFAULT));
 }
 
-uint8_t key_event(int ch) {
-    switch (ch) {
-        case 65: // UP
-            if (cur_x > 0) cur_x--;
-            break;
-
-        case 66: // DOWN
-            if (cur_x < size_x - 1) cur_x++;
-            break;
-
-        case 67: // RIGHT
-            if (cur_y < size_y - 1) cur_y++;
-            break;
-
-        case 68: // LEFT
-            if (cur_y > 0) cur_y--;
-            break;
-
-        case 32: // SPACE
-            if (!field[cur_x][cur_y].flag)
-                mine_open(cur_x, cur_y);
-            break;
-
-        case 'f': // f
-            field[cur_x][cur_y].flag = !field[cur_x][cur_y].flag;
-            break;
-
-        case 'x': // X
-            return 1;
-
-        default:
-            break;
-    }
-
-    return 0;
-}
-
-// Menu interface
-void open_menu() {
-
-}
-
 // Play game
-void play_game() {
+void start_game() {
+    erase();
+    bkgd(COLOR_PAIR(CL_DEFAULT));
+    st_game = 0;
     gen_field();
 
+    // Game doing
     do {
         render_field(0, 0);
         refresh();
 
         if (st_game != ST_GAME) break;
-    } while (!key_event(getch()));
 
+        switch (getch()) {
+            case 65: // UP
+                if (cur_x > 0) cur_x--;
+                break;
 
+            case 66: // DOWN
+                if (cur_x < size_x - 1) cur_x++;
+                break;
+
+            case 67: // RIGHT
+                if (cur_y < size_y - 1) cur_y++;
+                break;
+
+            case 68: // LEFT
+                if (cur_y > 0) cur_y--;
+                break;
+
+            case 32: // SPACE
+                if (!field[cur_x][cur_y].flag)
+                    mine_open(cur_x, cur_y);
+                break;
+
+            case 'f': // f
+                field[cur_x][cur_y].flag = !field[cur_x][cur_y].flag;
+                break;
+
+            case 'x': // X
+                return;
+
+            default:
+                break;
+        }
+    } while (1);
+
+    // Status message
     switch (st_game) {
         case ST_LOSE:
-            mvprintw(10, 0, "You lose.");
+            mvprintw(size_x + 2, 0, "You lose.");
             break;
 
         case ST_WIN:
-            mvprintw(10, 0, "You win!");
+            mvprintw(size_x + 2, 0, "You win!");
             break;
 
         default:
@@ -218,13 +215,52 @@ void play_game() {
     }
 
     getch();
+    erase();
+    bkgd(COLOR_PAIR(CL_DEFAULT));
+}
+
+// Menu interface
+void open_menu() {
+    uint8_t menu_pos = 0, menu_size = 4;
+
+    do {
+        // Render menu
+        mvprintw(0, 0, "nMines 0.1.0");
+        mvprintw(2, 0, "Difficulty:");
+        mvprintw(3, 0, "%s Easy (8x8)", (menu_pos == 0 ? "->" : "  "));
+        mvprintw(4, 0, "%s Medium (16x16)", (menu_pos == 1 ? "->" : "  "));
+        mvprintw(5, 0, "%s Hard (30x16)", (menu_pos == 2 ? "->" : "  "));
+        mvprintw(6, 0, "%s EXIT", (menu_pos == 3 ? "->" : "  "));
+
+        // Switches
+        switch (getch()) {
+            case 65: // UP
+                if (menu_pos > 0) menu_pos--;
+                break;
+
+            case 66: // DOWN
+                if (menu_pos < menu_size - 1) menu_pos++;
+                break;
+
+            case 32: // SPACE
+                if (menu_pos == 3) return;
+                else if (menu_pos == 0) size_x = 8, size_y = 8, mines = 10;
+                else if (menu_pos == 1) size_x = 16, size_y = 16, mines = 40;
+                else if (menu_pos == 2) size_x = 16, size_y = 30, mines = 99;
+                start_game();
+                break;
+
+            default:
+                break;
+        }
+    } while (1);
 }
 
 int main(uint8_t argc, char *argv[]) {
-    scr = initscr();
+    initscr();
     noecho();
     curs_set(FALSE);
-    getmaxyx(scr, scr_x, scr_y);
+    getmaxyx(stdscr, scr_x, scr_y);
 
     if (has_colors() == FALSE) {
         endwin();
@@ -240,12 +276,9 @@ int main(uint8_t argc, char *argv[]) {
     init_pair(CL_FIELD_OPEN, COLOR_WHITE, COLOR_CYAN);
     init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_WHITE);
     init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLUE);
+    bkgd(COLOR_PAIR(CL_DEFAULT));
 
-    // Open menu
     open_menu();
-
-    // Game doing
-    play_game();
 
     curs_set(TRUE);
     endwin();
