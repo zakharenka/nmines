@@ -6,9 +6,12 @@
 #define CL_FIELD_MINE 10
 #define CL_FIELD_MINE_FLAG 11
 #define CL_FIELD_FLAG 12
-#define CL_FIELD_OPEN 13
-#define CL_FIELD_CUR 14
-#define CL_FIELD_NONE 15
+#define CL_FIELD_CUR 13
+#define CL_FIELD_NONE 14
+#define CL_FIELD_OPEN 15
+#define CL_FIELD_OPEN_1 16
+#define CL_FIELD_OPEN_2 17
+#define CL_FIELD_OPEN_3 18
 #define CL_MENU 20
 
 #define ST_GAME 0
@@ -135,7 +138,7 @@ void mine_open(int x, int y) {
         if (MINE_CHECK(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].mine) mine_open(x - 1, y + 1);
         if (MINE_CHECK(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].mine) mine_open(x, y + 1);
         if (MINE_CHECK(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].mine) mine_open(x + 1, y + 1);
-    } else if (mar == flags_around(x,y)) {
+    } else if (mar == flags_around(x, y)) {
         if (MINE_CHECK(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].flag) mine_open(x - 1, y - 1);
         if (MINE_CHECK(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].flag) mine_open(x, y - 1);
         if (MINE_CHECK(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].flag) mine_open(x + 1, y - 1);
@@ -189,9 +192,13 @@ void render() {
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_MINE_FLAG : CL_FIELD_MINE)));
                 mvprintw(px + i, py + j * 2, "* ");
             } else if (field[i][j].open) { // Open square
-                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
-
                 int mines = mines_around(i, j);
+
+                if (mines == 0) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
+                if (mines == 1) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_1));
+                if (mines == 2) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_2));
+                if (mines > 2) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_3));
+
                 char str[3] = "\0";
                 str[0] = (char) (mines == 0 ? ' ' : (char) (mines + '0'));
                 str[1] = ' ';
@@ -302,9 +309,12 @@ int main(int argc, char *argv[]) {
     init_pair(CL_FIELD_FLAG, COLOR_WHITE, COLOR_YELLOW);
     init_pair(CL_FIELD_MINE, COLOR_WHITE, COLOR_RED);
     init_pair(CL_FIELD_MINE_FLAG, COLOR_WHITE, COLOR_GREEN);
-    init_pair(CL_FIELD_OPEN, COLOR_WHITE, COLOR_CYAN);
-    init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_WHITE);
-    init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLUE);
+    init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_CYAN);
+    init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLACK);
+    init_pair(CL_FIELD_OPEN, COLOR_BLACK, COLOR_WHITE);
+    init_pair(CL_FIELD_OPEN_1, COLOR_BLUE, COLOR_WHITE);
+    init_pair(CL_FIELD_OPEN_2, COLOR_GREEN, COLOR_WHITE);
+    init_pair(CL_FIELD_OPEN_3, COLOR_RED, COLOR_WHITE);
     init_pair(CL_MENU, COLOR_WHITE, COLOR_BLUE);
     bkgd(COLOR_PAIR(CL_DEFAULT));
 
@@ -316,28 +326,28 @@ int main(int argc, char *argv[]) {
 
         clear();
         bkgd(COLOR_PAIR(CL_DEFAULT));
-        render_border(px-1, py-1, px+menu_x+1, py+menu_y+1);
+        render_border(px - 1, py - 1, px + menu_x + 1, py + menu_y + 1);
 
-        mvprintw(px-1, py+2, "nMines 0.1.0");
+        mvprintw(px - 1, py + 2, "nMines 0.1.0");
 
         attron(A_BOLD);
         mvprintw(px, py, "   Difficulty   ");
         attroff(A_BOLD);
 
         if (menu_pos == 0) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px+1, py, "   Easy (8x8)   ");
+        mvprintw(px + 1, py, "   Easy (8x8)   ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 1) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px+2, py, " Medium (16x16) ");
+        mvprintw(px + 2, py, " Medium (16x16) ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 2) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px+3, py, "  Hard (30x16)  ");
+        mvprintw(px + 3, py, "  Hard (30x16)  ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 3) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px+4, py, "     EXIT       ");
+        mvprintw(px + 4, py, "     EXIT       ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         refresh();
