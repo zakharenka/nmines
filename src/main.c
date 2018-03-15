@@ -9,6 +9,7 @@
 #define CL_FIELD_OPEN 13
 #define CL_FIELD_CUR 14
 #define CL_FIELD_NONE 15
+#define CL_MENU 20
 
 #define ST_GAME 0
 #define ST_LOSE 1
@@ -304,21 +305,40 @@ int main(int argc, char *argv[]) {
     init_pair(CL_FIELD_OPEN, COLOR_WHITE, COLOR_CYAN);
     init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_WHITE);
     init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLUE);
+    init_pair(CL_MENU, COLOR_WHITE, COLOR_BLUE);
     bkgd(COLOR_PAIR(CL_DEFAULT));
 
     // Main menu
     int menu_pos = 0, menu_size = 4;
     while (!quit) {
+        const int menu_x = 4, menu_y = 15;
+        const int px = scr_x / 2 - menu_x / 2 - 2, py = scr_y / 2 - menu_y - 2;
+
         clear();
         bkgd(COLOR_PAIR(CL_DEFAULT));
+        render_border(px-1, py-1, px+menu_x+1, py+menu_y+1);
 
-        // Render menu
-        mvprintw(0, 0, "nMines 0.1.0");
-        mvprintw(2, 0, "Difficulty:");
-        mvprintw(3, 0, "%s Easy (8x8)", (menu_pos == 0 ? "->" : "  "));
-        mvprintw(4, 0, "%s Medium (16x16)", (menu_pos == 1 ? "->" : "  "));
-        mvprintw(5, 0, "%s Hard (30x16)", (menu_pos == 2 ? "->" : "  "));
-        mvprintw(6, 0, "%s EXIT", (menu_pos == 3 ? "->" : "  "));
+        mvprintw(px-1, py+2, "nMines 0.1.0");
+
+        attron(A_BOLD);
+        mvprintw(px, py, "   Difficulty   ");
+        attroff(A_BOLD);
+
+        if (menu_pos == 0) attron(COLOR_PAIR(CL_MENU));
+        mvprintw(px+1, py, "   Easy (8x8)   ");
+        attron(COLOR_PAIR(CL_DEFAULT));
+
+        if (menu_pos == 1) attron(COLOR_PAIR(CL_MENU));
+        mvprintw(px+2, py, " Medium (16x16) ");
+        attron(COLOR_PAIR(CL_DEFAULT));
+
+        if (menu_pos == 2) attron(COLOR_PAIR(CL_MENU));
+        mvprintw(px+3, py, "  Hard (30x16)  ");
+        attron(COLOR_PAIR(CL_DEFAULT));
+
+        if (menu_pos == 3) attron(COLOR_PAIR(CL_MENU));
+        mvprintw(px+4, py, "     EXIT       ");
+        attron(COLOR_PAIR(CL_DEFAULT));
 
         refresh();
 
