@@ -18,6 +18,8 @@
 #define ST_LOSE 1
 #define ST_WIN 2
 
+#define POS_VALID(x, y) ((x) >= 0 && (x) <= size_x-1 && (y) >= 0 && (y) <= size_y-1)
+
 typedef struct {
     bool mine, flag, open;
 } point;
@@ -26,10 +28,13 @@ bool quit = false;
 unsigned int scr_x, scr_y;
 unsigned int size_x, size_y, mines;
 unsigned int cur_x, cur_y, st_game;
+time_t time_start = NULL, time_end = NULL;
 point **field = NULL;
 
 // Generate field
 void gen_field() {
+    time_start = time(NULL);
+
     srand((unsigned int) time(0));
     field = calloc(size_x, sizeof(point *));
 
@@ -57,18 +62,18 @@ int mines_around(int x, int y) {
     int c = 0;
 
     // LEFT
-    if (x > 0 && y > 0 && field[x - 1][y - 1].mine) c++;
-    if (y > 0 && field[x][y - 1].mine) c++;
-    if (x < size_x - 1 && y > 0 && field[x + 1][y - 1].mine) c++;
+    if (POS_VALID(x - 1, y - 1) && !field[x - 1][y - 1].open && field[x - 1][y - 1].mine) c++;
+    if (POS_VALID(x, y - 1) && !field[x][y - 1].open && field[x][y - 1].mine) c++;
+    if (POS_VALID(x + 1, y - 1) && !field[x + 1][y - 1].open && field[x + 1][y - 1].mine) c++;
 
     // Center
-    if (x > 0 && field[x - 1][y].mine) c++;
-    if (x < size_x - 1 && field[x + 1][y].mine) c++;
+    if (POS_VALID(x - 1, y) && !field[x - 1][y].open && field[x - 1][y].mine) c++;
+    if (POS_VALID(x + 1, y) && !field[x + 1][y].open && field[x + 1][y].mine) c++;
 
     // RIGHT
-    if (x > 0 && y < size_y - 1 && field[x - 1][y + 1].mine) c++;
-    if (y < size_y - 1 && field[x][y + 1].mine) c++;
-    if (x < size_x - 1 && y < size_y - 1 && field[x + 1][y + 1].mine) c++;
+    if (POS_VALID(x - 1, y + 1) && !field[x - 1][y + 1].open && field[x - 1][y + 1].mine) c++;
+    if (POS_VALID(x, y + 1) && !field[x][y + 1].open && field[x][y + 1].mine) c++;
+    if (POS_VALID(x + 1, y + 1) && !field[x + 1][y + 1].open && field[x + 1][y + 1].mine) c++;
 
     return c;
 }
@@ -78,18 +83,18 @@ int flags_around(int x, int y) {
     int c = 0;
 
     // LEFT
-    if (x > 0 && y > 0 && !field[x - 1][y - 1].open && field[x - 1][y - 1].flag) c++;
-    if (y > 0 && !field[x][y - 1].open && field[x][y - 1].flag) c++;
-    if (x < size_x - 1 && y > 0 && !field[x + 1][y - 1].open && field[x + 1][y - 1].flag) c++;
+    if (POS_VALID(x - 1, y - 1) && !field[x - 1][y - 1].open && field[x - 1][y - 1].flag) c++;
+    if (POS_VALID(x, y - 1) && !field[x][y - 1].open && field[x][y - 1].flag) c++;
+    if (POS_VALID(x + 1, y - 1) && !field[x + 1][y - 1].open && field[x + 1][y - 1].flag) c++;
 
     // Center
-    if (x > 0 && !field[x - 1][y].open && field[x - 1][y].flag) c++;
-    if (x < size_x - 1 && !field[x + 1][y].open && field[x + 1][y].flag) c++;
+    if (POS_VALID(x - 1, y) && !field[x - 1][y].open && field[x - 1][y].flag) c++;
+    if (POS_VALID(x + 1, y) && !field[x + 1][y].open && field[x + 1][y].flag) c++;
 
     // RIGHT
-    if (x > 0 && y < size_y - 1 && !field[x - 1][y + 1].open && field[x - 1][y + 1].flag) c++;
-    if (y < size_y - 1 && !field[x][y + 1].open && field[x][y + 1].flag) c++;
-    if (x < size_x - 1 && y < size_y - 1 && !field[x + 1][y + 1].open && field[x + 1][y + 1].flag) c++;
+    if (POS_VALID(x - 1, y + 1) && !field[x - 1][y + 1].open && field[x - 1][y + 1].flag) c++;
+    if (POS_VALID(x, y + 1) && !field[x][y + 1].open && field[x][y + 1].flag) c++;
+    if (POS_VALID(x + 1, y + 1) && !field[x + 1][y + 1].open && field[x + 1][y + 1].flag) c++;
 
     return c;
 }
@@ -103,8 +108,6 @@ void mine_open_all() {
         }
     }
 }
-
-#define MINE_CHECK(x, y) ((x) >= 0 && (x) <= size_x-1 && (y) >= 0 && (y) <= size_y-1)
 
 // Open mine
 void mine_open(int x, int y) {
@@ -128,27 +131,27 @@ void mine_open(int x, int y) {
         mine_open_all();
         st_game = ST_WIN;
     } else if (mar == 0) {
-        if (MINE_CHECK(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].mine) mine_open(x - 1, y - 1);
-        if (MINE_CHECK(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].mine) mine_open(x, y - 1);
-        if (MINE_CHECK(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].mine) mine_open(x + 1, y - 1);
+        if (POS_VALID(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].mine) mine_open(x - 1, y - 1);
+        if (POS_VALID(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].mine) mine_open(x, y - 1);
+        if (POS_VALID(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].mine) mine_open(x + 1, y - 1);
 
-        if (MINE_CHECK(x - 1, y) && !field[x - 1][y].open && !field[x - 1][y].mine) mine_open(x - 1, y);
-        if (MINE_CHECK(x + 1, y) && !field[x + 1][y].open && !field[x + 1][y].mine) mine_open(x + 1, y);
+        if (POS_VALID(x - 1, y) && !field[x - 1][y].open && !field[x - 1][y].mine) mine_open(x - 1, y);
+        if (POS_VALID(x + 1, y) && !field[x + 1][y].open && !field[x + 1][y].mine) mine_open(x + 1, y);
 
-        if (MINE_CHECK(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].mine) mine_open(x - 1, y + 1);
-        if (MINE_CHECK(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].mine) mine_open(x, y + 1);
-        if (MINE_CHECK(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].mine) mine_open(x + 1, y + 1);
+        if (POS_VALID(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].mine) mine_open(x - 1, y + 1);
+        if (POS_VALID(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].mine) mine_open(x, y + 1);
+        if (POS_VALID(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].mine) mine_open(x + 1, y + 1);
     } else if (mar == flags_around(x, y)) {
-        if (MINE_CHECK(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].flag) mine_open(x - 1, y - 1);
-        if (MINE_CHECK(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].flag) mine_open(x, y - 1);
-        if (MINE_CHECK(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].flag) mine_open(x + 1, y - 1);
+        if (POS_VALID(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].flag) mine_open(x - 1, y - 1);
+        if (POS_VALID(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].flag) mine_open(x, y - 1);
+        if (POS_VALID(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].flag) mine_open(x + 1, y - 1);
 
-        if (MINE_CHECK(x - 1, y) && !field[x - 1][y].open && !field[x - 1][y].flag) mine_open(x - 1, y);
-        if (MINE_CHECK(x + 1, y) && !field[x + 1][y].open && !field[x + 1][y].flag) mine_open(x + 1, y);
+        if (POS_VALID(x - 1, y) && !field[x - 1][y].open && !field[x - 1][y].flag) mine_open(x - 1, y);
+        if (POS_VALID(x + 1, y) && !field[x + 1][y].open && !field[x + 1][y].flag) mine_open(x + 1, y);
 
-        if (MINE_CHECK(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].flag) mine_open(x - 1, y + 1);
-        if (MINE_CHECK(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].flag) mine_open(x, y + 1);
-        if (MINE_CHECK(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].flag) mine_open(x + 1, y + 1);
+        if (POS_VALID(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].flag) mine_open(x - 1, y + 1);
+        if (POS_VALID(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].flag) mine_open(x, y + 1);
+        if (POS_VALID(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].flag) mine_open(x + 1, y + 1);
     }
 }
 
@@ -167,6 +170,7 @@ void render_border(int y1, int x1, int y2, int x2) {
 void render() {
     clear();
     bkgd(COLOR_PAIR(CL_DEFAULT));
+    getmaxyx(stdscr, scr_x, scr_y);
 
     const int px = scr_x / 2 - size_x / 2 - 2, py = scr_y / 2 - size_y - 2;
 
@@ -197,7 +201,7 @@ void render() {
                 if (mines == 0) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
                 if (mines == 1) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_1));
                 if (mines == 2) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_2));
-                if (mines > 2) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_3));
+                if (mines >= 3) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_3));
 
                 char str[3] = "\0";
                 str[0] = (char) (mines == 0 ? ' ' : (char) (mines + '0'));
@@ -215,8 +219,8 @@ void render() {
         attron(COLOR_PAIR(CL_DEFAULT));
     }
 
-    // Field size
-    mvprintw(px - 1, py, "%dx%d", size_x, size_y);
+    //mvprintw(px - 1, py, "%dx%d", size_x, size_y);
+    mvprintw(px - 1, py, "%03d", time_start == NULL ? 0 : time(NULL)-time_start);
     mvprintw(px - 1, py + size_y * 2 - 2, "%02d", mines - flags);
 
     // Status message
@@ -242,8 +246,9 @@ void render() {
 
 // Play game
 void start_game() {
-    st_game = 0, cur_x = 0, cur_y = 0, field = NULL;
+    st_game = 0, cur_x = 0, cur_y = 0, field = NULL, time_start = NULL;
     render();
+    timeout(100);
 
     // Game doing
     do {
@@ -288,6 +293,7 @@ void start_game() {
         render();
     } while (st_game == ST_GAME);
 
+    timeout(-1);
     getch();
 }
 
@@ -295,7 +301,6 @@ int main(int argc, char *argv[]) {
     initscr();
     noecho();
     curs_set(FALSE);
-    getmaxyx(stdscr, scr_x, scr_y);
 
     if (has_colors() == FALSE) {
         endwin();
@@ -320,14 +325,16 @@ int main(int argc, char *argv[]) {
 
     // Main menu
     int menu_pos = 0, menu_size = 4;
+    timeout(100);
     while (!quit) {
+        clear();
+        bkgd(COLOR_PAIR(CL_DEFAULT));
+        getmaxyx(stdscr, scr_x, scr_y);
+
         const int menu_x = 4, menu_y = 15;
         const int px = scr_x / 2 - menu_x / 2 - 2, py = scr_y / 2 - menu_y - 2;
 
-        clear();
-        bkgd(COLOR_PAIR(CL_DEFAULT));
         render_border(px - 1, py - 1, px + menu_x + 1, py + menu_y + 1);
-
         mvprintw(px - 1, py + 2, "nMines 0.1.0");
 
         attron(A_BOLD);
@@ -347,7 +354,7 @@ int main(int argc, char *argv[]) {
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 3) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px + 4, py, "     EXIT       ");
+        mvprintw(px + 4, py, "      Exit      ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         refresh();
