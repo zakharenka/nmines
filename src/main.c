@@ -4,10 +4,11 @@
 
 #define CL_DEFAULT 1
 #define CL_FIELD_MINE 10
-#define CL_FIELD_FLAG 11
-#define CL_FIELD_OPEN 12
-#define CL_FIELD_CUR 13
-#define CL_FIELD_NONE 14
+#define CL_FIELD_MINE_FLAG 11
+#define CL_FIELD_FLAG 12
+#define CL_FIELD_OPEN 13
+#define CL_FIELD_CUR 14
+#define CL_FIELD_NONE 15
 
 #define ST_GAME 0
 #define ST_LOSE 1
@@ -68,6 +69,27 @@ int mines_around(int x, int y) {
     return c;
 }
 
+// Count of around flags
+int flags_around(int x, int y) {
+    int c = 0;
+
+    // LEFT
+    if (x > 0 && y > 0 && !field[x - 1][y - 1].open && field[x - 1][y - 1].flag) c++;
+    if (y > 0 && !field[x][y - 1].open && field[x][y - 1].flag) c++;
+    if (x < size_x - 1 && y > 0 && !field[x + 1][y - 1].open && field[x + 1][y - 1].flag) c++;
+
+    // Center
+    if (x > 0 && !field[x - 1][y].open && field[x - 1][y].flag) c++;
+    if (x < size_x - 1 && !field[x + 1][y].open && field[x + 1][y].flag) c++;
+
+    // RIGHT
+    if (x > 0 && y < size_y - 1 && !field[x - 1][y + 1].open && field[x - 1][y + 1].flag) c++;
+    if (y < size_y - 1 && !field[x][y + 1].open && field[x][y + 1].flag) c++;
+    if (x < size_x - 1 && y < size_y - 1 && !field[x + 1][y + 1].open && field[x + 1][y + 1].flag) c++;
+
+    return c;
+}
+
 // Open all mines
 void mine_open_all() {
     for (int i = 0; i < size_x; i++) {
@@ -82,6 +104,7 @@ void mine_open_all() {
 
 // Open mine
 void mine_open(int x, int y) {
+    if (!field[x][y].open && field[x][y].flag) return;
     field[x][y].open = true;
 
     // Check
@@ -92,13 +115,15 @@ void mine_open(int x, int y) {
         }
     }
 
+    const int mar = mines_around(x, y);
+
     if (field[x][y].mine) {
         mine_open_all();
         st_game = ST_LOSE;
     } else if (c == size_x * size_y) {
         mine_open_all();
         st_game = ST_WIN;
-    } else if (mines_around(x, y) == 0) {
+    } else if (mar == 0) {
         if (MINE_CHECK(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].mine) mine_open(x - 1, y - 1);
         if (MINE_CHECK(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].mine) mine_open(x, y - 1);
         if (MINE_CHECK(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].mine) mine_open(x + 1, y - 1);
@@ -109,6 +134,17 @@ void mine_open(int x, int y) {
         if (MINE_CHECK(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].mine) mine_open(x - 1, y + 1);
         if (MINE_CHECK(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].mine) mine_open(x, y + 1);
         if (MINE_CHECK(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].mine) mine_open(x + 1, y + 1);
+    } else if (mar == flags_around(x,y)) {
+        if (MINE_CHECK(x - 1, y - 1) && !field[x - 1][y - 1].open && !field[x - 1][y - 1].flag) mine_open(x - 1, y - 1);
+        if (MINE_CHECK(x, y - 1) && !field[x][y - 1].open && !field[x][y - 1].flag) mine_open(x, y - 1);
+        if (MINE_CHECK(x + 1, y - 1) && !field[x + 1][y - 1].open && !field[x + 1][y - 1].flag) mine_open(x + 1, y - 1);
+
+        if (MINE_CHECK(x - 1, y) && !field[x - 1][y].open && !field[x - 1][y].flag) mine_open(x - 1, y);
+        if (MINE_CHECK(x + 1, y) && !field[x + 1][y].open && !field[x + 1][y].flag) mine_open(x + 1, y);
+
+        if (MINE_CHECK(x - 1, y + 1) && !field[x - 1][y + 1].open && !field[x - 1][y + 1].flag) mine_open(x - 1, y + 1);
+        if (MINE_CHECK(x, y + 1) && !field[x][y + 1].open && !field[x][y + 1].flag) mine_open(x, y + 1);
+        if (MINE_CHECK(x + 1, y + 1) && !field[x + 1][y + 1].open && !field[x + 1][y + 1].flag) mine_open(x + 1, y + 1);
     }
 }
 
@@ -129,7 +165,14 @@ void render() {
     bkgd(COLOR_PAIR(CL_DEFAULT));
 
     const int px = scr_x / 2 - size_x / 2 - 2, py = scr_y / 2 - size_y - 2;
+
+    // Count of flags
     int flags = 0;
+    if (field != NULL)
+        for (int i = 0; i < size_x; i++)
+            for (int j = 0; j < size_y; j++)
+                if ((!field[i][j].open || (field[i][j].open && field[i][j].mine)) && field[i][j].flag)
+                    flags++;
 
     render_border(px - 1, py - 1, px + size_x, py + size_y * 2);
 
@@ -142,7 +185,7 @@ void render() {
                 mvprintw(px + i, py + j * 2, "  ");
                 continue;
             } else if (field[i][j].open && field[i][j].mine) { // Open mine
-                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_FLAG : CL_FIELD_MINE)));
+                attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_MINE_FLAG : CL_FIELD_MINE)));
                 mvprintw(px + i, py + j * 2, "* ");
             } else if (field[i][j].open) { // Open square
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
@@ -155,7 +198,6 @@ void render() {
             } else if (field[i][j].flag) { // Flag
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_FLAG));
                 mvprintw(px + i, py + j * 2, "FF");
-                flags++;
             } else { // Closed square
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_NONE));
                 mvprintw(px + i, py + j * 2, "  ");
@@ -216,8 +258,7 @@ void start_game() {
 
             case 32: // SPACE
                 if (field == NULL) gen_field();
-                if (!field[cur_x][cur_y].flag)
-                    mine_open(cur_x, cur_y);
+                mine_open(cur_x, cur_y);
                 break;
 
             case 'f': // FLAG
@@ -259,6 +300,7 @@ int main(int argc, char *argv[]) {
     init_pair(CL_DEFAULT, COLOR_WHITE, COLOR_BLACK);
     init_pair(CL_FIELD_FLAG, COLOR_WHITE, COLOR_YELLOW);
     init_pair(CL_FIELD_MINE, COLOR_WHITE, COLOR_RED);
+    init_pair(CL_FIELD_MINE_FLAG, COLOR_WHITE, COLOR_GREEN);
     init_pair(CL_FIELD_OPEN, COLOR_WHITE, COLOR_CYAN);
     init_pair(CL_FIELD_CUR, COLOR_BLACK, COLOR_WHITE);
     init_pair(CL_FIELD_NONE, COLOR_WHITE, COLOR_BLUE);
