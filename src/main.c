@@ -323,14 +323,14 @@ int main(int argc, char *argv[]) {
     bkgd(COLOR_PAIR(CL_DEFAULT));
 
     // Main menu
-    int menu_pos = 0, menu_size = 4;
+    int menu_pos = 0, menu_size = 5;
     timeout(100);
     while (!quit) {
         clear();
         bkgd(COLOR_PAIR(CL_DEFAULT));
         getmaxyx(stdscr, scr_x, scr_y);
 
-        const int menu_x = 4, menu_y = 15;
+        const int menu_x = 5, menu_y = 15;
         const int px = scr_x / 2 - menu_x / 2 - 2, py = scr_y / 2 - menu_y - 2;
 
         render_border(px - 1, py - 1, px + menu_x + 1, py + menu_y + 1);
@@ -349,11 +349,15 @@ int main(int argc, char *argv[]) {
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 2) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px + 3, py, "  Hard (30x16)  ");
+        mvprintw(px + 3, py, "  Hard (32x16)  ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         if (menu_pos == 3) attron(COLOR_PAIR(CL_MENU));
-        mvprintw(px + 4, py, "      Exit      ");
+        mvprintw(px + 4, py, " Expert (32x16) ");
+        attron(COLOR_PAIR(CL_DEFAULT));
+
+        if (menu_pos == 4) attron(COLOR_PAIR(CL_MENU));
+        mvprintw(px + 5, py, "      Exit      ");
         attron(COLOR_PAIR(CL_DEFAULT));
 
         refresh();
@@ -369,10 +373,11 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 32: // SPACE
-                if (menu_pos == 3) quit = true;
+                if (menu_pos == 4) { quit = true; break; }
                 else if (menu_pos == 0) size_x = 8, size_y = 8, mines = 10;
                 else if (menu_pos == 1) size_x = 16, size_y = 16, mines = 40;
-                else if (menu_pos == 2) size_x = 16, size_y = 30, mines = 99;
+                else if (menu_pos == 2) size_x = 16, size_y = 32, mines = 70;
+                else if (menu_pos == 3) size_x = 16, size_y = 32, mines = 99;
                 start_game();
                 break;
 
