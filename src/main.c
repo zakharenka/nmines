@@ -58,22 +58,22 @@ void gen_field() {
 }
 
 // Count of around mines
-int mines_around(int x, int y) {
+int mines_around(int x, int y, bool open) {
     int c = 0;
 
     // LEFT
-    if (POS_VALID(x - 1, y - 1) && !field[x - 1][y - 1].open && field[x - 1][y - 1].mine) c++;
-    if (POS_VALID(x, y - 1) && !field[x][y - 1].open && field[x][y - 1].mine) c++;
-    if (POS_VALID(x + 1, y - 1) && !field[x + 1][y - 1].open && field[x + 1][y - 1].mine) c++;
+    if (POS_VALID(x - 1, y - 1) && (!field[x - 1][y - 1].open || open) && field[x - 1][y - 1].mine) c++;
+    if (POS_VALID(x, y - 1) && (!field[x][y - 1].open || open) && field[x][y - 1].mine) c++;
+    if (POS_VALID(x + 1, y - 1) && (!field[x + 1][y - 1].open || open) && field[x + 1][y - 1].mine) c++;
 
     // Center
-    if (POS_VALID(x - 1, y) && !field[x - 1][y].open && field[x - 1][y].mine) c++;
-    if (POS_VALID(x + 1, y) && !field[x + 1][y].open && field[x + 1][y].mine) c++;
+    if (POS_VALID(x - 1, y) && (!field[x - 1][y].open || open) && field[x - 1][y].mine) c++;
+    if (POS_VALID(x + 1, y) && (!field[x + 1][y].open || open) && field[x + 1][y].mine) c++;
 
     // RIGHT
-    if (POS_VALID(x - 1, y + 1) && !field[x - 1][y + 1].open && field[x - 1][y + 1].mine) c++;
-    if (POS_VALID(x, y + 1) && !field[x][y + 1].open && field[x][y + 1].mine) c++;
-    if (POS_VALID(x + 1, y + 1) && !field[x + 1][y + 1].open && field[x + 1][y + 1].mine) c++;
+    if (POS_VALID(x - 1, y + 1) && (!field[x - 1][y + 1].open || open) && field[x - 1][y + 1].mine) c++;
+    if (POS_VALID(x, y + 1) && (!field[x][y + 1].open || open) && field[x][y + 1].mine) c++;
+    if (POS_VALID(x + 1, y + 1) && (!field[x + 1][y + 1].open || open) && field[x + 1][y + 1].mine) c++;
 
     return c;
 }
@@ -122,7 +122,7 @@ void mine_open(int x, int y) {
         }
     }
 
-    const int mar = mines_around(x, y);
+    const int mar = mines_around(x, y, false);
 
     if (field[x][y].mine) {
         mine_open_all();
@@ -196,7 +196,7 @@ void render() {
                 attron(COLOR_PAIR(cur ? CL_FIELD_CUR : (field[i][j].flag ? CL_FIELD_MINE_FLAG : CL_FIELD_MINE)));
                 mvprintw(px + i, py + j * 2, "* ");
             } else if (field[i][j].open) { // Open square
-                int mines = mines_around(i, j);
+                int mines = mines_around(i, j, true);
 
                 if (mines == 0) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN));
                 if (mines == 1) attron(COLOR_PAIR(cur ? CL_FIELD_CUR : CL_FIELD_OPEN_1));
@@ -219,7 +219,6 @@ void render() {
         attron(COLOR_PAIR(CL_DEFAULT));
     }
 
-    //mvprintw(px - 1, py, "%dx%d", size_x, size_y);
     mvprintw(px - 1, py, "%03d", time_start == NULL ? 0 : time(NULL)-time_start);
     mvprintw(px - 1, py + size_y * 2 - 2, "%02d", mines - flags);
 
